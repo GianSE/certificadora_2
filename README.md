@@ -62,31 +62,34 @@ O projeto segue padrões de **Clean Architecture** e **MVC**:
 │   ├── 📄 app_flask.py   # Servidor Web (Flask)
 │   └── 📁 templates/
 │        └── 📄 index.html # Frontend Web (HTML + JS + Chart.js)
+```
 
 ## ⚙️ Instalação e Configuração
-1. Pré-requisitos
+### 1. Pré-requisitos
 Certifique-se de ter instalado:
 
 Python 3.x
 
 MariaDB Server
 
-2. Instalação das Dependências
+### 2. Instalação das Dependências
 No terminal, execute:
 
-´´´bash
+```bash
     pip install flask sqlalchemy mariadb pandas paho-mqtt matplotlib
-´´´
+```
 
-3. Configuração do Banco de Dados
+### 3. Configuração do Banco de Dados
 Abra seu gerenciador SQL (HeidiSQL, Workbench).
 
 O sistema cria a tabela automaticamente, mas certifique-se de que o serviço MariaDB esteja rodando.
 
 Edite o arquivo config.py com suas credenciais:
 
+```bash
 DB_USER = "root"
 DB_PASS = "" # Sua senha
+```
 
 ## ▶️ Como Executar
 
@@ -112,13 +115,49 @@ Dê "Play" na simulação.
 
 ## 📊 Diagrama de Fluxo de Dados
 
-```bash
-graph LR
-    A[ESP32 / Wokwi] -- MQTT --> B(Broker Mosquitto)
-    B -- MQTT --> C[service.py]
-    C --> D[model.py]
-    D --> E[(MariaDB)]
-    D --> F{Fila em Memória}
-    F --> G[Flask / Web]
-    F --> H[Tkinter / Desktop]
+```mermaid
+graph TD
+    %% Estilos
+    classDef sensor fill:#ffeba1,stroke:#d4b106,color:black;
+    classDef controller fill:#c6e2ff,stroke:#005cbf,color:black;
+    classDef model fill:#d4edda,stroke:#28a745,color:black;
+    classDef view fill:#f8d7da,stroke:#dc3545,color:black;
+    classDef db fill:#e2e3e5,stroke:#383d41,color:black;
+
+    %% Nós
+    Sensor([📡 ESP32 / Wokwi]) ::: sensor
+    Broker(☁️ Mosquitto MQTT) ::: sensor
+    
+    %% Camadas do Software
+    subgraph Controller_Layer [Controller / Service]
+        Service[service.py] ::: controller
+    end
+
+    subgraph Model_Layer [Model & Data]
+        Model[model.py] ::: model
+        DatabaseLib[database.py] ::: model
+        Queue{Fila Thread-Safe} ::: model
+    end
+
+    subgraph Persistence_Layer [Persistência]
+        MariaDB[(🗄️ MariaDB)] ::: db
+    end
+
+    subgraph View_Layer [Views / Interfaces]
+        Flask[🌍 Flask Server] ::: view
+        Tkinter[💻 Tkinter App] ::: view
+    end
+
+    %% Ligações
+    Sensor --> Broker
+    Broker -- "Subscrição" --> Service
+    Service -- "Dados Crus" --> Model
+    
+    Model -- "Validação" --> Queue
+    Model -- "Validação" --> DatabaseLib
+    
+    DatabaseLib -- "SQL Insert" --> MariaDB
+    
+    Queue --> Flask
+    Queue --> Tkinter
 ```
