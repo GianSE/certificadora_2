@@ -1,18 +1,13 @@
 # Arquivo: model.py
 import pandas as pd
 import queue
-# Importa a nossa classe blindada
 from database import RepositorioSensor
 
 class GerenciadorDados:
     def __init__(self):
-        # 1. Dados em Memória (Gráfico Tempo Real)
-        # Isso SEMPRE vai funcionar, independente do banco
         self.fila_entrada = queue.Queue()
-        self.historico = pd.DataFrame(columns=['Tempo', 'Temperatura', 'Umidade'])
-        
-        # 2. Banco de Dados
-        # Instanciamos o repositório. Ele se vira para conectar ou ficar offline.
+        # Adicionamos as novas colunas no DataFrame da memória também
+        self.historico = pd.DataFrame(columns=['Tempo', 'Temperatura', 'Umidade', 'Bomba', 'Fan', 'Luz'])
         self.db = RepositorioSensor()
 
     def receber_dado(self, payload_json):
@@ -23,26 +18,36 @@ class GerenciadorDados:
         while not self.fila_entrada.empty():
             payload = self.fila_entrada.get()
             
-            # Dados crus
-            temp = payload['temperatura']
-            umid = payload['umidade']
+            # 1. Extrai dados do JSON novo (chaves do ESP32)
+            # Usa .get() para evitar erro se a chave não existir
+            temp = payload.get('temp', 0.0)
+            hum = payload.get('hum', 0.0)
+            
+            # Status (Vêm como true/false do ESP32)
+            st_bomba = payload.get('bomba', False)
+            st_fan = payload.get('fan', False)
+            st_luz = payload.get('luz', False)
 
-            # A. Atualiza memória RAM (Vital para o App funcionar)
+            # 2. Atualiza Memória RAM
             nova_linha = {
                 'Tempo': pd.Timestamp.now(),
                 'Temperatura': temp,
-                'Umidade': umid
+                'Umidade': hum,
+                'Bomba': st_bomba,
+                'Fan': st_fan,
+                'Luz': st_luz
             }
             self.historico = pd.concat([self.historico, pd.DataFrame([nova_linha])], ignore_index=True)
             
-            # B. Tenta salvar no Banco (Opcional)
-            # Se o banco estiver offline, esse método não faz nada e não trava o app.
-            self.db.salvar_leitura(temp, umid)
+            # 3. Salva no Banco
+            self.db.salvar_leitura(temp, hum, st_bomba, st_fan, st_luz)
 
             mudou_algo = True
             
-        # Limpeza da RAM (Mantém apenas os últimos 50 para o gráfico)
         if len(self.historico) > 50:
             self.historico = self.historico.iloc[1:]
             
         return mudou_algo
+
+    def consultar_historico(self, inicio, fim):
+        return self.db.buscar_historico(inicio, fim)

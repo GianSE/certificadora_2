@@ -74,7 +74,9 @@ class Launcher:
     def matar_servidor(self):
         if self.processo_web:
             print("Encerrando Flask...")
-            self.processo_web.terminate()
+            
+            subprocess.call(['taskkill', '/F', '/T', '/PID', str(self.processo_web.pid)])
+            
             self.processo_web = None
             self.btn_web.config(text="🌍 Iniciar Servidor Flask (+ Navegador)")
 

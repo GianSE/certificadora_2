@@ -12,3 +12,4 @@ config.py
 # Ignorar banco de dados local (se for arquivo)
 *.db
 *.sqlite3
+Pitwall(ESP32).zip

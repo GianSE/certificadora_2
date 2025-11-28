@@ -1,38 +1,71 @@
-from flask import Flask, render_template, jsonify
+# Arquivo: app_flask.py
+from flask import Flask, render_template, jsonify, request
+from datetime import datetime
 from model import GerenciadorDados
 from service import ServicoMQTT
-import time
 
 app = Flask(__name__)
 
-# --- INSTANCIAÇÃO DO SISTEMA (SINGLETON) ---
-# Instanciamos o modelo e o serviço MQTT assim que o servidor sobe
 dados = GerenciadorDados()
 mqtt = ServicoMQTT(dados)
 mqtt.iniciar()
 
 @app.route('/')
 def index():
-    """Rota principal que entrega a página HTML"""
     return render_template('index.html')
+
+@app.route('/historico')
+def page_historico():
+    return render_template('historico.html')
 
 @app.route('/api/dados')
 def api_dados():
-    """Rota API que retorna JSON para o JavaScript"""
-    # Processa a fila MQTT antes de responder
+    """Retorna o estado atual completo do Cockpit"""
     dados.processar_fila()
     
-    # Se tiver dados, retorna o último. Se não, retorna zeros.
     if not dados.historico.empty:
         ultimo = dados.historico.iloc[-1]
         return jsonify({
             "tempo": str(ultimo['Tempo'].strftime('%H:%M:%S')),
-            "temperatura": ultimo['Temperatura'],
-            "umidade": ultimo['Umidade']
+            "temperatura": float(ultimo['Temperatura']),
+            "umidade": float(ultimo['Umidade']),
+            # Converte booleano numpy para bool nativo do Python (JSON safe)
+            "bomba": bool(ultimo['Bomba']),
+            "fan": bool(ultimo['Fan']),
+            "luz": bool(ultimo['Luz'])
         })
     else:
-        return jsonify({"tempo": "--", "temperatura": 0, "umidade": 0})
+        return jsonify({
+            "tempo": "--", 
+            "temperatura": 0, 
+            "umidade": 0,
+            "bomba": False, "fan": False, "luz": False
+        })
+
+@app.route('/api/historico')
+def api_historico():
+    inicio_str = request.args.get('inicio')
+    fim_str = request.args.get('fim')
+    if not inicio_str or not fim_str: return jsonify([])
+
+    try:
+        dt_inicio = datetime.strptime(inicio_str, '%Y-%m-%dT%H:%M')
+        dt_fim = datetime.strptime(fim_str, '%Y-%m-%dT%H:%M')
+        
+        lista = dados.consultar_historico(dt_inicio, dt_fim)
+        
+        resultado = []
+        for l in lista:
+            resultado.append({
+                "tempo": l.data_hora.strftime('%d/%m %H:%M'),
+                "temperatura": l.temperatura,
+                "umidade": l.umidade,
+                "bomba": l.bomba,
+                "fan": l.fan
+            })
+        return jsonify(resultado)
+    except Exception:
+        return jsonify([])
 
 if __name__ == '__main__':
-    # host='0.0.0.0' permite acesso pelo celular
     app.run(debug=True, host='0.0.0.0', port=5000)
