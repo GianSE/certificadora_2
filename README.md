@@ -139,3 +139,5 @@ CLIENTE 1 (Publicador)                     SERVIDOR (Intermediário)            
        "A temperatura é 25°C"                     Guarda e Redistribui                       "Ah, chegou 25°C!"
         (Tópico: gian/...)                                                                    (Processa o dado)
 ```
+
+![Diagrama de Classes](diagrama_classes.png)
