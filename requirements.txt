@@ -1,0 +1,6 @@
+flask
+sqlalchemy
+mariadb
+pandas
+paho-mqtt
+matplotlib
