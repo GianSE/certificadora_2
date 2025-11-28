@@ -140,4 +140,5 @@ CLIENTE 1 (Publicador)                     SERVIDOR (Intermediário)            
         (Tópico: gian/...)                                                                    (Processa o dado)
 ```
 
+## ⚙️ Diagrama de classes
 ![Diagrama de Classes](diagrama_classes.png)
