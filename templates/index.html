@@ -3,34 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PitWall IoT - Cockpit Monitor</title>
+    <title>PitWall IoT - Cockpit</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; margin: 0; padding: 20px; }
-        
-        /* Menu */
         nav { background: #1f1f1f; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
-        nav a { color: #aaa; text-decoration: none; margin: 0 15px; font-weight: bold; font-size: 1.1em; transition: 0.3s; }
-        nav a:hover, nav a.active { color: #e91e63; }
+        nav a { color: #aaa; text-decoration: none; margin: 0 15px; font-weight: bold; }
+        nav a.active { color: #e91e63; }
 
-        /* Grid de Cards */
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
-        
-        .card { background: #1e1e1e; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .valor { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
-        .label { color: #888; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+        /* GRID DE VALORES (Linha 1) */
+        .grid-valores { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .card-valor { background: #1e1e1e; padding: 20px; border-radius: 15px; text-align: center; border-left: 5px solid #555; }
+        .big-number { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
 
-        /* Status Badges (Atuadores) */
-        .status-badge { 
-            display: inline-block; padding: 5px 15px; border-radius: 20px; 
-            font-weight: bold; margin-top: 10px; font-size: 0.9em;
-        }
-        .status-off { background: #333; color: #777; border: 1px solid #555; }
-        .status-on { background: #e91e63; color: white; box-shadow: 0 0 10px #e91e63; }
-        .status-on-blue { background: #2196F3; color: white; box-shadow: 0 0 10px #2196F3; }
-        .status-on-yellow { background: #FFC107; color: black; box-shadow: 0 0 10px #FFC107; }
+        /* GRID DE STATUS (Linha 2) */
+        .grid-status { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card-status { background: #252525; padding: 15px; border-radius: 10px; text-align: center; display: flex; align-items: center; justify-content: space-between; }
+        .status-badge { padding: 5px 15px; border-radius: 20px; font-weight: bold; background: #333; color: #777; }
+        .status-on { background: #e91e63; color: white; box-shadow: 0 0 8px #e91e63; }
+        .status-on-blue { background: #2196F3; color: white; box-shadow: 0 0 8px #2196F3; }
+        .status-on-yellow { background: #FFC107; color: black; box-shadow: 0 0 8px #FFC107; }
 
-        .chart-container { max-width: 1000px; margin: 30px auto; background: #1e1e1e; padding: 20px; border-radius: 15px; }
+        /* GRID DE GRÁFICOS (Linha 3) */
+        .grid-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .chart-box { background: #1e1e1e; padding: 15px; border-radius: 15px; }
     </style>
 </head>
 <body>
@@ -40,115 +36,131 @@
         <a href="/historico">📅 Telemetria Histórica</a>
     </nav>
 
-    <div class="grid-container">
-        <div class="card" style="border-top: 4px solid #ff6384;">
-            <div class="label">Temperatura Cabine</div>
-            <div id="temp-val" class="valor">-- °C</div>
+    <div class="grid-valores">
+        <div class="card-valor" style="border-color: #ff6384;">
+            <div>TEMPERATURA</div>
+            <div id="val-temp" class="big-number">-- °C</div>
         </div>
-
-        <div class="card" style="border-top: 4px solid #36a2eb;">
-            <div class="label">Umidade Relativa</div>
-            <div id="hum-val" class="valor">-- %</div>
+        <div class="card-valor" style="border-color: #36a2eb;">
+            <div>UMIDADE</div>
+            <div id="val-hum" class="big-number">-- %</div>
         </div>
-
-        <div class="card">
-            <div class="label">Sistema Refrigeração</div>
-            <div id="bomba-status" class="status-badge status-off">OFF</div>
-            <div style="font-size:0.8em; color:#666; margin-top:5px;">Ativa > 32°C</div>
-        </div>
-
-        <div class="card">
-            <div class="label">Exaustor Viseira</div>
-            <div id="fan-status" class="status-badge status-off">OFF</div>
-            <div style="font-size:0.8em; color:#666; margin-top:5px;">Ativa > 70%</div>
-        </div>
-        
-        <div class="card">
-            <div class="label">Iluminação Painel</div>
-            <div id="luz-status" class="status-badge status-off">OFF</div>
-            <div style="font-size:0.8em; color:#666; margin-top:5px;">Ativa no Escuro</div>
+        <div class="card-valor" style="border-color: #FFC107;">
+            <div>LUMINOSIDADE</div>
+            <div id="val-luz" class="big-number">--</div>
+            <div style="font-size:0.8em; color:#888;">(0 - 4095)</div>
         </div>
     </div>
 
-    <div class="chart-container">
-        <canvas id="myChart"></canvas>
+    <div class="grid-status">
+        <div class="card-status">
+            <span>❄️ Refrigeração (Bomba)</span>
+            <span id="st-bomba" class="status-badge">OFF</span>
+        </div>
+        <div class="card-status">
+            <span>💨 Ventilação (Viseira)</span>
+            <span id="st-fan" class="status-badge">OFF</span>
+        </div>
+        <div class="card-status">
+            <span>💡 Iluminação (Painel)</span>
+            <span id="st-luz" class="status-badge">OFF</span>
+        </div>
+    </div>
+
+    <div class="grid-charts">
+        <div class="chart-box">
+            <canvas id="chartTemp"></canvas>
+        </div>
+        <div class="chart-box">
+            <canvas id="chartHum"></canvas>
+        </div>
+        <div class="chart-box">
+            <canvas id="chartLuz"></canvas>
+        </div>
     </div>
 
     <script>
-        // --- Gráfico Chart.js ---
-        const ctx = document.getElementById('myChart').getContext('2d');
-        const myChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Temp (°C)',
-                    borderColor: '#ff6384',
-                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                    data: [],
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'Umid (%)',
-                    borderColor: '#36a2eb',
-                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                    data: [],
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { labels: { color: 'white' } } },
-                scales: {
-                    x: { ticks: { color: '#888' }, grid: { color: '#333' } },
-                    y: { ticks: { color: '#888' }, grid: { color: '#333' } }
+        // Função auxiliar para criar gráficos
+        function criarGrafico(id, label, cor) {
+            return new Chart(document.getElementById(id).getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        borderColor: cor,
+                        backgroundColor: cor + '20', // Transparência
+                        data: [],
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { display: false }, // Esconde datas para ficar mais limpo
+                        y: { ticks: { color: '#888' }, grid: { color: '#333' } }
+                    },
+                    plugins: { legend: { display: false }, title: { display: true, text: label, color: 'white' } }
                 }
-            }
-        });
-
-        async function atualizarDados() {
-            try {
-                const response = await fetch('/api/dados');
-                const data = await response.json();
-
-                // 1. Atualiza Valores Numéricos
-                document.getElementById('temp-val').innerText = data.temperatura.toFixed(1) + " °C";
-                document.getElementById('hum-val').innerText = data.umidade.toFixed(1) + " %";
-
-                // 2. Atualiza Status (Visual)
-                atualizarBadge('bomba-status', data.bomba, 'status-on-blue', 'REFRIGERANDO');
-                atualizarBadge('fan-status', data.fan, 'status-on', 'VENTILANDO');
-                atualizarBadge('luz-status', data.luz, 'status-on-yellow', 'ACESO');
-
-                // 3. Atualiza Gráfico
-                if (data.tempo !== "--") {
-                    myChart.data.labels.push(data.tempo);
-                    myChart.data.datasets[0].data.push(data.temperatura);
-                    myChart.data.datasets[1].data.push(data.umidade);
-
-                    if (myChart.data.labels.length > 20) {
-                        myChart.data.labels.shift();
-                        myChart.data.datasets[0].data.shift();
-                        myChart.data.datasets[1].data.shift();
-                    }
-                    myChart.update();
-                }
-            } catch (error) { console.error(error); }
+            });
         }
 
-        function atualizarBadge(id, estado, classeCor, textoOn) {
+        // 1. Cria os 3 gráficos
+        const chartTemp = criarGrafico('chartTemp', 'Temperatura (°C)', '#ff6384');
+        const chartHum = criarGrafico('chartHum', 'Umidade (%)', '#36a2eb');
+        const chartLuz = criarGrafico('chartLuz', 'Luminosidade (Lux)', '#FFC107');
+
+        async function atualizar() {
+            try {
+                const res = await fetch('/api/dados');
+                const data = await res.json();
+
+                // Atualiza Valores
+                document.getElementById('val-temp').innerText = data.temperatura.toFixed(1) + " °C";
+                document.getElementById('val-hum').innerText = data.umidade.toFixed(1) + " %";
+                document.getElementById('val-luz').innerText = data.luminosidade;
+
+                // Atualiza Badges de Status
+                setBadge('st-bomba', data.bomba, 'status-on-blue', 'ON');
+                setBadge('st-fan', data.fan, 'status-on', 'ON');
+                setBadge('st-luz', data.luz_painel, 'status-on-yellow', 'ON');
+
+                // Atualiza Gráficos
+                if(data.tempo !== "--") {
+                    addData(chartTemp, data.tempo, data.temperatura);
+                    addData(chartHum, data.tempo, data.umidade);
+                    addData(chartLuz, data.tempo, data.luminosidade);
+                }
+
+            } catch (e) { console.error(e); }
+        }
+
+        function addData(chart, label, valor) {
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(valor);
+            
+            if(chart.data.labels.length > 1000) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+            
+            chart.update();
+        }
+
+        function setBadge(id, estado, classe, texto) {
             const el = document.getElementById(id);
-            if (estado) {
-                el.className = `status-badge ${classeCor}`;
-                el.innerText = textoOn;
+            if(estado) {
+                el.className = `status-badge ${classe}`;
+                el.innerText = texto;
             } else {
-                el.className = "status-badge status-off";
+                el.className = `status-badge`;
                 el.innerText = "OFF";
             }
         }
 
-        setInterval(atualizarDados, 1000);
+        setInterval(atualizar, 1000);
     </script>
 </body>
 </html>

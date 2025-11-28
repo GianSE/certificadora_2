@@ -20,26 +20,22 @@ def page_historico():
 
 @app.route('/api/dados')
 def api_dados():
-    """Retorna o estado atual completo do Cockpit"""
     dados.processar_fila()
-    
     if not dados.historico.empty:
         ultimo = dados.historico.iloc[-1]
         return jsonify({
             "tempo": str(ultimo['Tempo'].strftime('%H:%M:%S')),
             "temperatura": float(ultimo['Temperatura']),
             "umidade": float(ultimo['Umidade']),
-            # Converte booleano numpy para bool nativo do Python (JSON safe)
+            "luminosidade": int(ultimo['Luminosidade']), # <--- NOVO
             "bomba": bool(ultimo['Bomba']),
             "fan": bool(ultimo['Fan']),
-            "luz": bool(ultimo['Luz'])
+            "luz_painel": bool(ultimo['Luz_Painel'])
         })
     else:
         return jsonify({
-            "tempo": "--", 
-            "temperatura": 0, 
-            "umidade": 0,
-            "bomba": False, "fan": False, "luz": False
+            "tempo": "--", "temperatura": 0, "umidade": 0, "luminosidade": 0,
+            "bomba": False, "fan": False, "luz_painel": False
         })
 
 @app.route('/api/historico')
@@ -60,11 +56,14 @@ def api_historico():
                 "tempo": l.data_hora.strftime('%d/%m %H:%M'),
                 "temperatura": l.temperatura,
                 "umidade": l.umidade,
+                "luminosidade": l.luminosidade,  # <--- ADICIONADO
                 "bomba": l.bomba,
-                "fan": l.fan
+                "fan": l.fan,
+                "luz_painel": l.luz_painel       # <--- ADICIONADO
             })
         return jsonify(resultado)
-    except Exception:
+    except Exception as e:
+        print(e)
         return jsonify([])
 
 if __name__ == '__main__':

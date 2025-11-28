@@ -1,5 +1,5 @@
 # Arquivo: database.py
-from sqlalchemy import create_engine, Column, Integer, Float, DateTime, Boolean # <--- Adicionado Boolean
+from sqlalchemy import create_engine, Column, Integer, Float, DateTime, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 import config
@@ -11,12 +11,13 @@ class LeituraDB(Base):
     id = Column(Integer, primary_key=True)
     data_hora = Column(DateTime, default=datetime.now)
     
-    # Dados Ambientais
+    # Grandezas Físicas
     temperatura = Column(Float)
     umidade = Column(Float)
+    luminosidade = Column(Integer)  # <--- NOVO: Valor bruto do LDR
     
-    # Status dos Equipamentos (Novos campos)
-    bomba = Column(Boolean)       # True = Ligado, False = Desligado
+    # Status dos Atuadores
+    bomba = Column(Boolean)
     fan = Column(Boolean)
     luz_painel = Column(Boolean)
 
@@ -29,29 +30,23 @@ class RepositorioSensor:
 
     def _conectar(self):
         try:
-            conn_str = (
-                f"mariadb+mariadbconnector://"
-                f"{config.DB_USER}:{config.DB_PASS}"
-                f"@{config.DB_HOST}:{config.DB_PORT}"
-                f"/{config.DB_NAME}"
-            )
+            conn_str = f"mariadb+mariadbconnector://{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}"
             self.engine = create_engine(conn_str, echo=False)
-            Base.metadata.create_all(self.engine) # Cria tabela com colunas novas
+            Base.metadata.create_all(self.engine)
             self.Session = sessionmaker(bind=self.engine)
             self.conectado = True
-            print(f"✅ [Database] Conectado (Tabela 'leituras' atualizada)")
-            
+            print(f"✅ [Database] Conectado.")
         except Exception as e:
             print(f"⚠️ [Database] Erro: {e}")
-            self.conectado = False
 
-    def salvar_leitura(self, temp, umid, bomba, fan, luz):
+    def salvar_leitura(self, temp, umid, lum, bomba, fan, luz): # <--- Adicionado lum
         if not self.conectado: return
         session = self.Session()
         try:
             nova = LeituraDB(
                 temperatura=temp, 
                 umidade=umid,
+                luminosidade=lum, # <--- Salva no banco
                 bomba=bomba,
                 fan=fan,
                 luz_painel=luz
@@ -65,6 +60,7 @@ class RepositorioSensor:
             session.close()
 
     def buscar_historico(self, data_inicio, data_fim):
+        # (Mesma lógica, não muda nada aqui, o objeto já vem com o campo novo)
         if not self.conectado: return []
         session = self.Session()
         try:

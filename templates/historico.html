@@ -13,13 +13,18 @@
         nav a { color: #888; text-decoration: none; margin: 0 15px; font-weight: bold; font-size: 1.1em; transition: 0.3s; }
         nav a:hover, nav a.active { color: #e91e63; }
 
-        /* Controles de Filtro */
+        /* Controles */
         .filtros { background: #1e1e1e; padding: 20px; border-radius: 15px; display: inline-block; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        input[type="datetime-local"] { padding: 8px; border-radius: 5px; border: none; background: #333; color: white; }
+        
+        input[type="datetime-local"], select { 
+            padding: 8px; border-radius: 5px; border: none; background: #333; color: white; margin: 5px;
+        }
+        select { background: #444; font-weight: bold; cursor: pointer; }
+        
         button { padding: 8px 15px; background: #e91e63; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-left: 10px;}
         button:hover { background: #c2185b; }
 
-        .chart-container { width: 95%; max-width: 1000px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 15px; }
+        .chart-container { width: 95%; max-width: 1200px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 15px; }
     </style>
 </head>
 <body>
@@ -32,10 +37,19 @@
     <h1>📅 Histórico de Telemetria</h1>
 
     <div class="filtros">
+        <label>Visualizar:</label>
+        <select id="tipo-grafico" onchange="redesenharGrafico()">
+            <option value="temp">🌡️ Temperatura + Bomba</option>
+            <option value="umid">💧 Umidade + Exaustor</option>
+            <option value="luz">💡 Luminosidade + Lâmpada</option>
+            <option value="tudo">📊 Tudo (Visão Geral)</option>
+        </select>
+
+        <br><br>
+
         <label>De:</label>
         <input type="datetime-local" id="data-inicio">
-        
-        <label style="margin-left: 10px;">Até:</label>
+        <label>Até:</label>
         <input type="datetime-local" id="data-fim">
         
         <button onclick="buscarDados()">🔍 Carregar Dados</button>
@@ -47,115 +61,148 @@
 
     <script>
         let chartInstance = null;
+        let dadosGlobais = []; // Guarda os dados para não precisar baixar de novo ao trocar o select
 
         async function buscarDados() {
             const inicio = document.getElementById('data-inicio').value;
             const fim = document.getElementById('data-fim').value;
 
-            if (!inicio || !fim) {
-                alert("Por favor, selecione as datas de início e fim.");
-                return;
-            }
+            if (!inicio || !fim) { alert("Selecione as datas."); return; }
 
-            const url = `/api/historico?inicio=${inicio}&fim=${fim}`;
             try {
-                const response = await fetch(url);
-                const dados = await response.json();
-
-                if (dados.length === 0) {
-                    alert("Nenhum dado encontrado neste período.");
-                    return;
-                }
-                atualizarGrafico(dados);
-            } catch (e) {
-                console.error(e);
-                alert("Erro ao conectar com o servidor.");
-            }
+                const response = await fetch(`/api/historico?inicio=${inicio}&fim=${fim}`);
+                dadosGlobais = await response.json(); // Salva na variável global
+                
+                if (dadosGlobais.length === 0) { alert("Sem dados no período."); return; }
+                
+                redesenharGrafico(); // Chama a função que desenha baseado no select
+            } catch (e) { console.error(e); alert("Erro ao conectar."); }
         }
 
-        function atualizarGrafico(dados) {
+        function redesenharGrafico() {
+            if (dadosGlobais.length === 0) return;
+
+            const tipo = document.getElementById('tipo-grafico').value;
             const ctx = document.getElementById('histChart').getContext('2d');
             
-            // Mapeia os dados recebidos
-            const labels = dados.map(d => d.tempo);
-            const temps = dados.map(d => d.temperatura);
-            const umids = dados.map(d => d.umidade);
-            
-            // Converte True/False para 1/0 para mostrar no gráfico
-            const bomba = dados.map(d => d.bomba ? 1 : 0); 
-            const fan = dados.map(d => d.fan ? 1 : 0);
+            // Dados Comuns
+            const labels = dadosGlobais.map(d => d.tempo);
 
+            // Prepara os datasets baseados na escolha
+            let datasets = [];
+            let yAxisConfig = {};
+
+            // --- CONFIGURAÇÃO DOS DATASETS ---
+            
+            // 1. TEMPERATURA + BOMBA
+            if (tipo === 'temp' || tipo === 'tudo') {
+                datasets.push({
+                    label: 'Temp (°C)',
+                    borderColor: '#ff6384',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    data: dadosGlobais.map(d => d.temperatura),
+                    yAxisID: 'y_esq',
+                    tension: 0.4,
+                    fill: (tipo !== 'tudo') // Só preenche se for gráfico único
+                });
+                datasets.push({
+                    label: 'Bomba (On/Off)',
+                    borderColor: '#4CAF50', 
+                    data: dadosGlobais.map(d => d.bomba ? 1 : 0),
+                    yAxisID: 'y_dir_status',
+                    stepped: true,
+                    borderWidth: 2,
+                    pointRadius: 0
+                });
+            }
+
+            // 2. UMIDADE + EXAUSTOR
+            if (tipo === 'umid' || tipo === 'tudo') {
+                datasets.push({
+                    label: 'Umid (%)',
+                    borderColor: '#36a2eb',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    data: dadosGlobais.map(d => d.umidade),
+                    yAxisID: 'y_esq',
+                    tension: 0.4,
+                    fill: (tipo !== 'tudo')
+                });
+                datasets.push({
+                    label: 'Exaustor (On/Off)',
+                    borderColor: '#FF5722', 
+                    data: dadosGlobais.map(d => d.fan ? 1 : 0),
+                    yAxisID: 'y_dir_status',
+                    stepped: true,
+                    borderDash: [5, 5],
+                    borderWidth: 2,
+                    pointRadius: 0
+                });
+            }
+
+            // 3. LUMINOSIDADE + LÂMPADA
+            if (tipo === 'luz' || tipo === 'tudo') {
+                datasets.push({
+                    label: 'Luminosidade (Lux)',
+                    borderColor: '#FFC107',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    // --- CORREÇÃO DE INVERSÃO ---
+                    // Se o sensor dá 4095 no escuro, fazemos (4095 - valor)
+                    // Assim, o gráfico sobe quando tem luz.
+                    data: dadosGlobais.map(d => 4095 - d.luminosidade), 
+                    yAxisID: (tipo === 'tudo') ? 'y_dir_luz' : 'y_esq', // Se for só luz, usa eixo principal
+                    tension: 0.4,
+                    fill: (tipo !== 'tudo')
+                });
+                datasets.push({
+                    label: 'Luz Painel (On/Off)',
+                    borderColor: '#FFF', 
+                    data: dadosGlobais.map(d => d.luz_painel ? 1 : 0),
+                    yAxisID: 'y_dir_status',
+                    stepped: true,
+                    borderDash: [2, 2],
+                    borderWidth: 2,
+                    pointRadius: 0
+                });
+            }
+
+            // --- CONFIGURAÇÃO DOS EIXOS ---
+            yAxisConfig = {
+                y_esq: { 
+                    type: 'linear', display: true, position: 'left',
+                    ticks: { color: '#fff' },
+                    title: { display: true, text: 'Valor' }
+                },
+                y_dir_status: {
+                    type: 'linear', display: true, position: 'right',
+                    min: 0, max: 1.5, // Deixa o status baixinho no gráfico
+                    display: false // Esconde números
+                }
+            };
+
+            // Se estiver vendo tudo junto, precisamos de um terceiro eixo para a Luz (0-4095)
+            if (tipo === 'tudo') {
+                yAxisConfig.y_dir_luz = {
+                    type: 'linear', display: true, position: 'right',
+                    ticks: { color: '#FFC107' },
+                    grid: { drawOnChartArea: false }
+                };
+            }
+
+            // --- CRIAÇÃO DO GRÁFICO ---
             if (chartInstance) chartInstance.destroy();
 
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [
-                        {
-                            label: 'Temp (°C)',
-                            borderColor: '#ff6384',
-                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                            data: temps,
-                            yAxisID: 'y', // Eixo Esquerdo
-                            tension: 0.4
-                        }, 
-                        {
-                            label: 'Umid (%)',
-                            borderColor: '#36a2eb',
-                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                            data: umids,
-                            yAxisID: 'y', // Eixo Esquerdo
-                            tension: 0.4
-                        },
-                        // --- NOVOS DADOS (EQUIPAMENTOS) ---
-                        {
-                            label: 'Bomba (On/Off)',
-                            borderColor: '#4CAF50', // Verde
-                            data: bomba,
-                            yAxisID: 'y1', // Eixo Direito (0 ou 1)
-                            stepped: true, // Gráfico quadrado (degrau)
-                            borderWidth: 2,
-                            pointRadius: 0
-                        },
-                        {
-                            label: 'Exaustor (On/Off)',
-                            borderColor: '#FFC107', // Amarelo
-                            data: fan,
-                            yAxisID: 'y1', // Eixo Direito
-                            stepped: true,
-                            borderWidth: 2,
-                            borderDash: [5, 5], // Linha tracejada para diferenciar
-                            pointRadius: 0
-                        }
-                    ]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
                     interaction: { mode: 'index', intersect: false },
                     scales: {
                         x: { ticks: { color: '#888' }, grid: { color: '#333' } },
-                        
-                        // Eixo Y Esquerdo (Temp/Umid)
-                        y: { 
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: { display: true, text: 'Clima' },
-                            ticks: { color: '#fff' }
-                        },
-                        
-                        // Eixo Y Direito (On/Off)
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            min: 0,
-                            max: 1.2, // Deixa um espacinho acima do 1
-                            title: { display: true, text: 'Equipamentos (1=ON)' },
-                            grid: { drawOnChartArea: false }, // Remove grade pra não poluir
-                            ticks: { stepSize: 1, color: '#aaa' }
-                        }
+                        ...yAxisConfig
                     },
                     plugins: { legend: { labels: { color: 'white' } } }
                 }

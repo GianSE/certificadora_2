@@ -12,9 +12,9 @@ ldr = ADC(Pin(34))
 ldr.atten(ADC.ATTN_11DB)
 
 # Atuadores
-bomba_rele = Pin(26, Pin.OUT)    # Relé 1: Bomba de Água
-exaustor_rele = Pin(27, Pin.OUT) # Relé 2: Exaustor (NOVO)
-luz_painel = Pin(13, Pin.OUT)    # LED: Luz do Painel
+bomba_rele = Pin(26, Pin.OUT)    
+exaustor_rele = Pin(27, Pin.OUT) 
+luz_painel = Pin(13, Pin.OUT)    
 
 # Configuração do OLED
 i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
@@ -22,39 +22,41 @@ oled = ssd1306.SSD1306_I2C(128, 64, i2c)
 
 def mostrar_cockpit(temp, hum, luz, st_bomba, st_fan, st_luz):
     oled.fill(0)
-    oled.text(f"CABINE F1", 30, 0)
-    
-    # Dados Numéricos
-    oled.text(f"T:{temp:.0f}C H:{hum:.0f}%", 0, 12)
-    
+    oled.text("CABINE F1", 30, 0)
+    oled.text("T:{:.0f}C H:{:.0f}%".format(temp, hum), 0, 12)
     oled.hline(0, 25, 128, 1)
     
-    # Status dos Equipamentos
-    # Coluna 1
     oled.text("Bomba:", 0, 30)
     oled.text("ON" if st_bomba else "OFF", 60, 30)
     
     oled.text("Fan:", 0, 40)
-    oled.text("ON" if st_fan else "OFF", 60, 40) # Mostra status do Exaustor
+    oled.text("ON" if st_fan else "OFF", 60, 40)
 
     oled.text("Luz:", 0, 50)
     oled.text("ON" if st_luz else "OFF", 60, 50)
-        
     oled.show()
 
-# --- CONEXÃO (Mantenha igual) ---
+# --- CONEXÃO ---
 print("Iniciando Sistema de Cockpit...")
+# Limpa tela inicial
 mostrar_cockpit(0,0,0,0,0,0)
+
+print("Conectando Wi-Fi...", end="")
 wifi = network.WLAN(network.STA_IF)
 wifi.active(True)
 wifi.connect('Wokwi-GUEST', '')
-while not wifi.isconnected(): time.sleep(0.1)
+while not wifi.isconnected(): 
+    time.sleep(0.1)
+    print(".", end="")
+print(" OK!")
 
 try:
+    print("Conectando MQTT...", end="")
     client = MQTTClient("esp32-cockpit-full", "test.mosquitto.org")
     client.connect()
-except:
-    pass
+    print(" OK!")
+except Exception as e:
+    print(" Erro MQTT: ", e)
 
 # --- LOOP PRINCIPAL ---
 while True:
@@ -72,8 +74,7 @@ while True:
         else:
             bomba_rele.value(0)
             
-        # 2. Controle de Humidade (Exaustor) - NOVO
-        # Se a humidade passar de 70%, liga o ventilador para desembaçar
+        # 2. Controle de Humidade (Exaustor)
         st_fan = False
         if hum > 70:
             exaustor_rele.value(1)
@@ -83,25 +84,30 @@ while True:
 
         # 3. Controle de Luz (Painel)
         st_luz = False
-        if luz > 1000:
+        if luz > 1000: 
             luz_painel.value(1)
             st_luz = True
         else:
             luz_painel.value(0)
 
-        # Atualiza Display e Envia MQTT
+        # Atualiza Display
         mostrar_cockpit(temp, hum, luz, st_bomba, st_fan, st_luz)
         
+        # Agora enviamos "luminosidade" (valor bruto) E "luz_painel" (status on/off)
         payload = ujson.dumps({
             "temp": temp, 
             "hum": hum, 
+            "luminosidade": luz,       # <--- NOVO: Valor de 0 a 4095
             "bomba": st_bomba, 
             "fan": st_fan,
-            "luz": st_luz
+            "luz_painel": st_luz       # Renomeei para ficar claro que é o status do LED
         })
         client.publish("gian/projeto/cockpit", payload)
+        print("Enviado: ", payload) 
         
     except OSError:
-        print("Erro sensor")
+        print("Erro leitura sensor")
+    except Exception as e:
+        print("Erro geral: ", e)
     
-    time.sleep(1)
+    time.sleep(2)

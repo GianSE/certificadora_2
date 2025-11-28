@@ -8,7 +8,7 @@ DB_NAME = "database"
 
 MQTT_BROKER = "test.mosquitto.org"
 MQTT_PORT = 1883
-MQTT_TOPIC = "seu_nome/projeto/sensor"
+MQTT_TOPIC = "seu_nome/projeto/cockpit"
 FLASK_HOST = "0.0.0.0"
 FLASK_PORT = 5000
 FLASK_DEBUG = True

@@ -6,8 +6,8 @@ from database import RepositorioSensor
 class GerenciadorDados:
     def __init__(self):
         self.fila_entrada = queue.Queue()
-        # Adicionamos as novas colunas no DataFrame da memória também
-        self.historico = pd.DataFrame(columns=['Tempo', 'Temperatura', 'Umidade', 'Bomba', 'Fan', 'Luz'])
+        # Adicionamos 'Luminosidade' ao DataFrame
+        self.historico = pd.DataFrame(columns=['Tempo', 'Temperatura', 'Umidade', 'Luminosidade', 'Bomba', 'Fan', 'Luz_Painel'])
         self.db = RepositorioSensor()
 
     def receber_dado(self, payload_json):
@@ -18,29 +18,27 @@ class GerenciadorDados:
         while not self.fila_entrada.empty():
             payload = self.fila_entrada.get()
             
-            # 1. Extrai dados do JSON novo (chaves do ESP32)
-            # Usa .get() para evitar erro se a chave não existir
             temp = payload.get('temp', 0.0)
             hum = payload.get('hum', 0.0)
+            lum = payload.get('luminosidade', 0) # <--- Lê valor novo
             
-            # Status (Vêm como true/false do ESP32)
             st_bomba = payload.get('bomba', False)
             st_fan = payload.get('fan', False)
-            st_luz = payload.get('luz', False)
+            st_luz = payload.get('luz_painel', False)
 
-            # 2. Atualiza Memória RAM
             nova_linha = {
                 'Tempo': pd.Timestamp.now(),
                 'Temperatura': temp,
                 'Umidade': hum,
+                'Luminosidade': lum, # <--- Salva na RAM
                 'Bomba': st_bomba,
                 'Fan': st_fan,
-                'Luz': st_luz
+                'Luz_Painel': st_luz
             }
             self.historico = pd.concat([self.historico, pd.DataFrame([nova_linha])], ignore_index=True)
             
-            # 3. Salva no Banco
-            self.db.salvar_leitura(temp, hum, st_bomba, st_fan, st_luz)
+            # Salva no Banco com o novo campo
+            self.db.salvar_leitura(temp, hum, lum, st_bomba, st_fan, st_luz)
 
             mudou_algo = True
             
@@ -48,6 +46,6 @@ class GerenciadorDados:
             self.historico = self.historico.iloc[1:]
             
         return mudou_algo
-
+    
     def consultar_historico(self, inicio, fim):
         return self.db.buscar_historico(inicio, fim)
