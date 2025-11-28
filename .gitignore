@@ -1,0 +1,14 @@
+# Ignorar arquivos compilados do Python
+__pycache__/
+*.py[cod]
+
+# Ignorar ambientes virtuais
+venv/
+.env
+
+# IGNORAR ARQUIVO DE SENHAS (O MAIS IMPORTANTE)
+config.py
+
+# Ignorar banco de dados local (se for arquivo)
+*.db
+*.sqlite3
