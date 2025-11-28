@@ -1,0 +1,15 @@
+CREATE TABLE `leituras` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`data_hora` DATETIME NULL DEFAULT current_timestamp(),
+	`temperatura` FLOAT NULL DEFAULT NULL,
+	`umidade` FLOAT NULL DEFAULT NULL,
+	`bomba` TINYINT(1) NULL DEFAULT '0',
+	`fan` TINYINT(1) NULL DEFAULT '0',
+	`luz_painel` TINYINT(1) NULL DEFAULT '0',
+	`luminosidade` INT(11) NULL DEFAULT '0',
+	PRIMARY KEY (`id`) USING BTREE
+)
+COLLATE='utf8mb4_uca1400_ai_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=68
+;
