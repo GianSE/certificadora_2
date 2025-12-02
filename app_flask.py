@@ -56,10 +56,10 @@ def api_historico():
                 "tempo": l.data_hora.strftime('%d/%m %H:%M'),
                 "temperatura": l.temperatura,
                 "umidade": l.umidade,
-                "luminosidade": l.luminosidade,  # <--- ADICIONADO
+                "luminosidade": l.luminosidade,
                 "bomba": l.bomba,
                 "fan": l.fan,
-                "luz_painel": l.luz_painel       # <--- ADICIONADO
+                "luz_painel": l.luz_painel
             })
         return jsonify(resultado)
     except Exception as e:

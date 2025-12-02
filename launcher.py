@@ -4,18 +4,18 @@ import subprocess
 import sys
 import socket
 import os
-import signal
-import webbrowser  # <--- IMPORT NOVO
+import webbrowser
+import time
 
 class Launcher:
     def __init__(self, root):
         self.root = root
-        self.root.title("Sistema IoT Gian - Launcher (Flask Edition)")
-        self.root.geometry("450x350")
+        self.root.title("Sistema IoT Gian - Server Manager")
+        self.root.geometry("450x250") # Ajustei a altura pois tem menos botões
         
         self.processo_web = None
 
-        # Protocolo de encerramento seguro
+        # Garante que o servidor fecha ao fechar a janela
         self.root.protocol("WM_DELETE_WINDOW", self.ao_fechar)
 
         # 1. Descobre o IP
@@ -26,26 +26,25 @@ class Launcher:
         lbl.pack(pady=15)
 
         # --- SEÇÃO WEB (FLASK) ---
-        frame_web = ttk.LabelFrame(root, text="Acesso Remoto (Celular/Web)", padding=10)
+        frame_web = ttk.LabelFrame(root, text="Servidor Web (Acesso Remoto)", padding=10)
         frame_web.pack(fill=tk.X, padx=20, pady=5)
 
-        self.btn_web = ttk.Button(frame_web, text="🌍 Iniciar Servidor Flask (+ Navegador)", command=self.abrir_web)
+        self.btn_web = ttk.Button(frame_web, text="🌍 Iniciar Servidor Flask", command=self.alternar_servidor)
         self.btn_web.pack(fill=tk.X, pady=5)
         
-        lbl_info = ttk.Label(frame_web, text=f"No celular, digite:\nhttp://{self.meu_ip}:5000", 
-                             font=("Consolas", 12), foreground="blue", justify="center")
-        lbl_info.pack(pady=5)
+        self.lbl_status = ttk.Label(frame_web, text="Status: Parado", foreground="red")
+        self.lbl_status.pack()
 
-        # --- SEÇÃO LOCAL (DESKTOP) ---
-        frame_local = ttk.LabelFrame(root, text="Acesso Local (Desktop)", padding=10)
-        frame_local.pack(fill=tk.X, padx=20, pady=10)
-
-        btn_desk = ttk.Button(frame_local, text="💻 Abrir Interface Tkinter", command=self.abrir_desktop)
-        btn_desk.pack(fill=tk.X, pady=5)
+        # Link clicável (simulado)
+        self.lbl_link = ttk.Label(frame_web, text=f"http://{self.meu_ip}:5000", 
+                                  font=("Consolas", 12, "underline"), foreground="blue", cursor="hand2")
+        self.lbl_link.pack(pady=5)
+        self.lbl_link.bind("<Button-1>", lambda e: webbrowser.open(f"http://{self.meu_ip}:5000"))
 
     def pegar_ip_local(self):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            # Tenta conectar ao Google DNS (não envia dados, apenas descobre a rota)
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
             s.close()
@@ -53,48 +52,49 @@ class Launcher:
         except Exception:
             return "127.0.0.1"
 
-    def abrir_web(self):
+    def alternar_servidor(self):
         if self.processo_web is None:
-            print("Iniciando Flask...")
-            cmd = [sys.executable, "app_flask.py"]
-            
-            # Inicia o servidor em background
-            self.processo_web = subprocess.Popen(cmd)
-            self.btn_web.config(text="🛑 Parar Servidor Flask (Rodando...)")
-            
-            # --- A MÁGICA ACONTECE AQUI ---
-            # Espera 2 segundos (2000ms) para o Flask subir e então abre o navegador
-            print("Abrindo navegador...")
-            url = f"http://{self.meu_ip}:5000"
-            self.root.after(3000, lambda: webbrowser.open(url))
-            
+            self.iniciar_web()
         else:
             self.matar_servidor()
+
+    def iniciar_web(self):
+        if not os.path.exists("app_flask.py"):
+            messagebox.showerror("Erro", "O arquivo 'app_flask.py' não foi encontrado na pasta!")
+            return
+
+        print("Iniciando Flask...")
+        cmd = [sys.executable, "app_flask.py"]
+        
+        # Inicia o servidor em background
+        # CREATE_NO_WINDOW impede que abra uma tela preta extra no Windows
+        creationflags = 0
+        if sys.platform == "win32":
+            creationflags = subprocess.CREATE_NO_WINDOW
+
+        self.processo_web = subprocess.Popen(cmd, creationflags=creationflags)
+        
+        # Atualiza Interface
+        self.btn_web.config(text="🛑 Parar Servidor Flask")
+        self.lbl_status.config(text="Status: Rodando...", foreground="green")
+        
+        # Abre o navegador após 2 segundos
+        self.root.after(5000, lambda: webbrowser.open(f"http://{self.meu_ip}:5000"))
 
     def matar_servidor(self):
         if self.processo_web:
             print("Encerrando Flask...")
             
-            subprocess.call(['taskkill', '/F', '/T', '/PID', str(self.processo_web.pid)])
-            
+            # Método Cross-Platform (funciona em Windows, Linux e Mac)
+            self.processo_web.terminate()
             self.processo_web = None
-            self.btn_web.config(text="🌍 Iniciar Servidor Flask (+ Navegador)")
-
-    def abrir_desktop(self):
-        print("Iniciando Desktop App...")
-        self.matar_servidor() 
-        self.root.destroy()
-        
-        from desktop_app import AplicacaoDesktop
-        novo_root = tk.Tk()
-        app = AplicacaoDesktop(novo_root)
-        novo_root.mainloop()
+            
+            # Atualiza Interface
+            self.btn_web.config(text="🌍 Iniciar Servidor Flask")
+            self.lbl_status.config(text="Status: Parado", foreground="red")
 
     def ao_fechar(self):
-        try:
-            self.matar_servidor()
-        except:
-            pass
+        self.matar_servidor()
         self.root.destroy()
         sys.exit()
 
