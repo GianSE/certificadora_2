@@ -58,11 +58,14 @@ O projeto segue padrões de **Clean Architecture** e **MVC**:
 │   └── 📄 service.py    # Cliente MQTT (Recebe dados do ESP32)
 │
 ├── 🖥️ Camada de Interface (Views)
-│   ├── 📄 desktop_app.py # Aplicação Desktop (Tkinter)
 │   ├── 📄 app_flask.py   # Servidor Web (Flask)
 │   └── 📁 templates/
+│        ├── 📄 historico.html # Frontend conectado ao banco mariaDB
 │        └── 📄 index.html # Frontend Web (HTML + JS + Chart.js)
 ```
+
+## ⚙️ Diagrama de classes
+![Diagrama de Classes](diagrama_classes.png)
 
 ## ⚙️ Instalação e Configuração
 ### 1. Pré-requisitos
@@ -88,7 +91,7 @@ Edite o arquivo config.py com suas credenciais:
 
 ```bash
 DB_USER = "root"
-DB_PASS = "" # Sua senha
+DB_PASS = ""
 ```
 
 ## ▶️ Como Executar
@@ -139,6 +142,3 @@ CLIENTE 1 (Publicador)                     SERVIDOR (Intermediário)            
        "A temperatura é 25°C"                     Guarda e Redistribui                       "Ah, chegou 25°C!"
         (Tópico: gian/...)                                                                    (Processa o dado)
 ```
-
-## ⚙️ Diagrama de classes
-![Diagrama de Classes](diagrama_classes.png)
