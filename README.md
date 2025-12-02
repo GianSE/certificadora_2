@@ -1,19 +1,18 @@
-# 🌡️ Sistema de Monitoramento IoT - Arquitetura MVC
+# 🌡️ PitWall - Sistema de Monitoramento IoT
 
 > **Desenvolvido por:** Gian
-> **Contexto:** Projeto Acadêmico (Certificadora)
+> **Contexto:** Projeto Acadêmico (Certificadora 2)
 
-Este projeto é um sistema completo de monitoramento ambiental (Temperatura e Umidade) baseado em IoT (Internet das Coisas). Ele captura dados de sensores em tempo real, transmite via protocolo MQTT e oferece visualização multi-plataforma (Desktop e Web), com persistência histórica em banco de dados.
+Este projeto é um sistema completo de monitoramento ambiental (Temperatura, Umidade e Luminosiade) baseado em IoT (Internet das Coisas). Ele captura dados de sensores em tempo real, transmite via protocolo MQTT e oferece visualização multi-plataforma Web(localhost), com persistência histórica em banco de dados.
 
 ---
 
 ## 🚀 Funcionalidades Principais
 
-* **📡 Coleta em Tempo Real:** Leitura de sensores DHT22 via ESP32 (Simulação Wokwi).
+* **📡 Coleta em Tempo Real:** Leitura de sensores DHT22 e Photoresistor (LDR) via ESP32 (Simulação Wokwi).
 * **🔄 Arquitetura Modular:** Separação clara entre Dados (Model), Conexão (Service) e Interfaces (View).
 * **💾 Persistência de Dados:** Histórico salvo automaticamente no MariaDB usando ORM (SQLAlchemy).
-* **💻 Interface Desktop:** Aplicação nativa Windows usando `Tkinter` e gráficos estáticos com `Matplotlib`.
-* **🌍 Interface Web (Mobile):** Dashboard moderno usando `Flask` e gráficos dinâmicos com `Chart.js`, acessível pelo celular na mesma rede Wi-Fi.
+* **🌍 Interface Web:** Dashboard moderno usando `Flask` e gráficos dinâmicos com `Chart.js`, acessível até mesmo pelo celular na mesma rede Wi-Fi.
 * **🛡️ Robustez:** Sistema "Graceful Degradation" (continua funcionando em memória RAM mesmo se o banco de dados cair).
 
 ---
