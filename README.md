@@ -78,7 +78,24 @@ MariaDB Server
 No terminal, execute:
 
 ```bash
+    #Ambiente Vitual
+    python -m venv venv
+
+    # Ativação ambiente virtual
+    ./venv/scripts/activate
+```
+
+```bash
     pip install flask sqlalchemy mariadb pandas paho-mqtt matplotlib
+
+    # OU, é um ou outro
+
+    pip install -r requirements.txt
+```
+
+```bash
+    # Execução do programa
+    ./exec_launcher.bat
 ```
 
 ### 3. Configuração do Banco de Dados
